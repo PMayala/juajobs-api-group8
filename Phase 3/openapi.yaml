@@ -1,0 +1,607 @@
+openapi: 3.1.0
+info:
+  title: JuaJobs API
+  version: '1.0.0'
+  description: |
+    The JuaJobs API enables integration with Africa's leading gig economy platform,
+    connecting skilled workers with clients across the continent.
+  contact:
+    name: JuaJobs API Support
+    url: https://developers.juajobs.com
+    email: api@juajobs.com
+  license:
+    name: Proprietary
+    url: https://juajobs.com/terms
+
+servers:
+  - url: https://api.juajobs.com/v1
+    description: Production API Server
+  - url: https://api.staging.juajobs.com/v1
+    description: Staging API Server
+
+security:
+  - bearerAuth: []
+  - apiKey: []
+
+tags:
+  - name: Users
+    description: User management operations
+  - name: Jobs
+    description: Job posting operations
+  - name: Applications
+    description: Job application operations
+  - name: Reviews
+    description: Review management operations
+  - name: Skills
+    description: Skill and category operations
+  - name: Payments
+    description: Payment processing operations
+
+paths:
+  /users:
+    get:
+      tags: [Users]
+      summary: List users
+      description: Retrieve a paginated list of users. Admin access required.
+      parameters:
+        - $ref: '#/components/parameters/pageParam'
+        - $ref: '#/components/parameters/perPageParam'
+        - $ref: '#/components/parameters/sortParam'
+        - $ref: '#/components/parameters/orderParam'
+        - $ref: '#/components/parameters/fieldsParam'
+        - $ref: '#/components/parameters/includeParam'
+      responses:
+        '200':
+          description: List of users retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      tags: [Users]
+      summary: Create user
+      description: Create a new user account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreate'
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /users/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: User ID
+    get:
+      tags: [Users]
+      summary: Get user details
+      description: Retrieve detailed information about a specific user
+      responses:
+        '200':
+          description: User details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags: [Users]
+      summary: Update user
+      description: Update user information
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdate'
+      responses:
+        '200':
+          description: User updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /jobs:
+    get:
+      tags: [Jobs]
+      summary: List job postings
+      description: Retrieve a paginated list of job postings
+      parameters:
+        - $ref: '#/components/parameters/pageParam'
+        - $ref: '#/components/parameters/perPageParam'
+        - $ref: '#/components/parameters/sortParam'
+        - $ref: '#/components/parameters/orderParam'
+        - $ref: '#/components/parameters/fieldsParam'
+        - $ref: '#/components/parameters/includeParam'
+        - $ref: '#/components/parameters/filterStatusParam'
+        - $ref: '#/components/parameters/searchParam'
+        - $ref: '#/components/parameters/locationParam'
+      responses:
+        '200':
+          description: List of jobs retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobList'
+    post:
+      tags: [Jobs]
+      summary: Create job posting
+      description: Create a new job posting
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JobCreate'
+      responses:
+        '201':
+          description: Job posting created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from authentication
+    apiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API key for server-to-server requests
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier
+        email:
+          type: string
+          format: email
+          description: User's email address
+        phone_number:
+          type: string
+          pattern: '^[0-9+]+$'
+          description: User's phone number
+        first_name:
+          type: string
+          minLength: 2
+          maxLength: 50
+          description: User's first name
+        last_name:
+          type: string
+          minLength: 2
+          maxLength: 50
+          description: User's last name
+        role:
+          type: string
+          enum: [WORKER, CLIENT, ADMIN]
+          description: User's role in the system
+        status:
+          type: string
+          enum: [ACTIVE, INACTIVE, SUSPENDED]
+          description: Account status
+        created_at:
+          type: string
+          format: date-time
+          description: Account creation timestamp
+        updated_at:
+          type: string
+          format: date-time
+          description: Last update timestamp
+      required:
+        - id
+        - email
+        - phone_number
+        - first_name
+        - last_name
+        - role
+        - status
+
+    UserCreate:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        phone_number:
+          type: string
+          pattern: '^[0-9+]+$'
+        password:
+          type: string
+          format: password
+          minLength: 8
+        first_name:
+          type: string
+          minLength: 2
+          maxLength: 50
+        last_name:
+          type: string
+          minLength: 2
+          maxLength: 50
+        role:
+          type: string
+          enum: [WORKER, CLIENT]
+      required:
+        - email
+        - phone_number
+        - password
+        - first_name
+        - last_name
+        - role
+
+    Job:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+          minLength: 5
+          maxLength: 100
+        description:
+          type: string
+          minLength: 50
+          maxLength: 5000
+        client_id:
+          type: string
+          format: uuid
+        category_id:
+          type: string
+          format: uuid
+        required_skills:
+          type: array
+          items:
+            type: string
+            format: uuid
+        status:
+          type: string
+          enum: [DRAFT, PUBLISHED, CLOSED, COMPLETED]
+        location:
+          $ref: '#/components/schemas/Location'
+        payment:
+          $ref: '#/components/schemas/PaymentDetails'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - description
+        - client_id
+        - category_id
+        - required_skills
+        - status
+        - location
+        - payment
+
+    Location:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [REMOTE, ONSITE, HYBRID]
+        country:
+          type: string
+          pattern: '^[A-Z]{2}$'
+        city:
+          type: string
+        coordinates:
+          type: object
+          properties:
+            latitude:
+              type: number
+              format: float
+            longitude:
+              type: number
+              format: float
+      required:
+        - type
+
+    PaymentDetails:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [FIXED, HOURLY, PROJECT]
+        amount:
+          type: number
+          format: decimal
+          minimum: 0
+        currency:
+          type: string
+          pattern: '^[A-Z]{3}$'
+      required:
+        - type
+        - amount
+        - currency
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: integer
+              description: Numerical error code
+              enum:
+                - 40001  # Invalid request format
+                - 40002  # Missing required field
+                - 40003  # Invalid field value
+                - 40004  # Duplicate entry
+                - 40101  # Invalid credentials
+                - 40102  # Token expired
+                - 40103  # Invalid token
+                - 40301  # Insufficient permissions
+                - 40302  # Resource access denied
+                - 40303  # Account suspended
+                - 40401  # Resource not found
+                - 40402  # Endpoint not found
+                - 42201  # Validation failed
+                - 42202  # Business rule violation
+                - 42901  # Rate limit exceeded
+                - 50001  # Internal server error
+                - 50002  # Database error
+                - 50003  # External service error
+                - 50301  # Service temporarily unavailable
+            message:
+              type: string
+              description: Human-readable error message
+            error_type:
+              type: string
+              enum:
+                - VALIDATION_ERROR
+                - AUTHENTICATION_ERROR
+                - AUTHORIZATION_ERROR
+                - RESOURCE_ERROR
+                - BUSINESS_ERROR
+                - SYSTEM_ERROR
+              description: Category of the error
+            details:
+              type: array
+              items:
+                type: object
+                properties:
+                  field:
+                    type: string
+                    description: Field that caused the error
+                  code:
+                    type: integer
+                    description: Field-specific error code
+                  message:
+                    type: string
+                    description: Field-specific error message
+            request_id:
+              type: string
+              description: Unique identifier for the request
+            documentation_url:
+              type: string
+              description: URL to error documentation
+      required:
+        - error
+
+  parameters:
+    pageParam:
+      name: page
+      in: query
+      description: Page number for pagination
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+
+    perPageParam:
+      name: per_page
+      in: query
+      description: Number of items per page
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+
+    sortParam:
+      name: sort
+      in: query
+      description: Field to sort by
+      schema:
+        type: string
+        default: created_at
+
+    orderParam:
+      name: order
+      in: query
+      description: Sort order (asc/desc)
+      schema:
+        type: string
+        enum: [asc, desc]
+        default: desc
+
+    fieldsParam:
+      name: fields
+      in: query
+      description: Comma-separated list of fields to include
+      schema:
+        type: string
+
+    includeParam:
+      name: include
+      in: query
+      description: Comma-separated list of related resources to include
+      schema:
+        type: string
+
+    filterStatusParam:
+      name: filter[status]
+      in: query
+      description: Filter by status
+      schema:
+        type: string
+
+    searchParam:
+      name: search
+      in: query
+      description: Search term
+      schema:
+        type: string
+
+    locationParam:
+      name: near
+      in: query
+      description: Location coordinates (lat,lng) and optional radius
+      schema:
+        type: string
+        pattern: '^-?\d+(\.\d+)?,-?\d+(\.\d+)?(?:,\d+(?:km|mi))?$'
+
+  responses:
+    BadRequest:
+      description: Bad request (400)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            validation_error:
+              value:
+                error:
+                  code: 40001
+                  message: "Invalid request format"
+                  error_type: "VALIDATION_ERROR"
+                  details: [
+                    {
+                      "field": "email",
+                      "code": 40003,
+                      "message": "Invalid email format"
+                    }
+                  ]
+
+    Unauthorized:
+      description: Authentication required (401)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            invalid_token:
+              value:
+                error:
+                  code: 40101
+                  message: "Invalid authentication credentials"
+                  error_type: "AUTHENTICATION_ERROR"
+
+    Forbidden:
+      description: Permission denied (403)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            access_denied:
+              value:
+                error:
+                  code: 40301
+                  message: "Insufficient permissions to access resource"
+                  error_type: "AUTHORIZATION_ERROR"
+
+    NotFound:
+      description: Resource not found (404)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            resource_not_found:
+              value:
+                error:
+                  code: 40401
+                  message: "Requested resource not found"
+                  error_type: "RESOURCE_ERROR"
+
+    ValidationError:
+      description: Validation error (422)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            business_rule_violation:
+              value:
+                error:
+                  code: 42201
+                  message: "Validation failed"
+                  error_type: "BUSINESS_ERROR"
+                  details: [
+                    {
+                      "field": "amount",
+                      "code": 42202,
+                      "message": "Amount must be greater than minimum wage"
+                    }
+                  ]
+
+    TooManyRequests:
+      description: Rate limit exceeded (429)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            rate_limit:
+              value:
+                error:
+                  code: 42901
+                  message: "Rate limit exceeded"
+                  error_type: "SYSTEM_ERROR"
+
+    InternalError:
+      description: Internal server error (500)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            server_error:
+              value:
+                error:
+                  code: 50001
+                  message: "Internal server error"
+                  error_type: "SYSTEM_ERROR" 
